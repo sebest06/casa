@@ -1,0 +1,1192 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tareas de la casa</title>
+<meta name="theme-color" content="#2f6f5e">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<style>
+  :root {
+    --bg: #f6f4ef;
+    --panel: #ffffff;
+    --ink: #22201c;
+    --muted: #6d675d;
+    --line: #e2ddd2;
+    --accent: #2f6f5e;
+    --danger: #b3412f;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, sans-serif;
+  }
+  header.top {
+    display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between;
+    padding: 14px 20px; background: var(--panel); border-bottom: 1px solid var(--line);
+    position: sticky; top: 0; z-index: 5;
+  }
+  h1 { font-size: 20px; margin: 0; }
+  h1 input {
+    font: inherit; border: none; background: transparent; color: inherit; width: 18ch;
+    border-bottom: 1px dashed transparent;
+  }
+  h1 input:hover, h1 input:focus { border-bottom-color: var(--line); outline: none; }
+  .estado { font-size: 12px; color: var(--muted); }
+  .estado.sucio { color: var(--danger); font-weight: 600; }
+  .estado button { font-size: 12px; padding: 2px 8px; margin-left: 6px; }
+  .acciones { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  button, select.btn {
+    font: inherit; font-size: 14px; cursor: pointer; padding: 7px 12px;
+    border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink);
+  }
+  button:hover { border-color: #bdb5a5; }
+  button.primario { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.peligro { color: var(--danger); }
+  .grupo { display: inline-flex; }
+  .grupo > :first-child { border-radius: 8px 0 0 8px; }
+  .grupo > :last-child { border-radius: 0 8px 8px 0; border-left: none; }
+
+  .barra {
+    display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; justify-content: space-between;
+    padding: 12px 20px;
+  }
+  .nav-semana { display: flex; align-items: center; gap: 6px; }
+  .nav-semana .rango { font-weight: 600; min-width: 15ch; text-align: center; }
+  .nav-semana .ciclo { font-size: 12px; color: var(--muted); }
+  .filtros { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel);
+    font-size: 13px; cursor: pointer;
+  }
+  .chip.activo { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .punto { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; }
+
+  main { padding: 0 20px 30px; }
+  .hoja-semana + .hoja-semana { margin-top: 24px; }
+  .cabecera-semana {
+    display: flex; flex-wrap: wrap; gap: 6px 14px; justify-content: space-between; align-items: baseline;
+    margin-bottom: 8px;
+  }
+  .resumen { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); }
+  .resumen b { color: var(--ink); }
+
+  /* Vista semana */
+  .semana { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 8px; }
+  .dia.sin-dia { background: transparent; border-style: dashed; border-width: 2px; }
+  .dia.sin-dia h2 { color: var(--muted); }
+  .quien-opciones { display: flex; flex-wrap: wrap; gap: 8px; }
+  .quien-opciones button { border-left: 4px solid var(--c); }
+  .dia {
+    background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+    min-height: 200px; display: flex; flex-direction: column;
+  }
+  .dia h2 {
+    font-size: 14px; margin: 0; padding: 8px 10px; border-bottom: 1px solid var(--line);
+    display: flex; justify-content: space-between; align-items: center; gap: 4px;
+  }
+  .dia h2 small { font-weight: 400; color: var(--muted); }
+  .dia h2 button { padding: 0 8px; font-size: 16px; line-height: 22px; }
+  .dia.hoy h2 { background: #eaf2ee; }
+  .lista { padding: 6px; display: flex; flex-direction: column; gap: 6px; }
+  .tarea {
+    border-radius: 8px; padding: 6px 8px; cursor: pointer;
+    border-left: 4px solid var(--c, #999); background: var(--cbg, #f2f2f2);
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .tarea:hover { filter: brightness(0.97); }
+  .tarea[draggable=true] { cursor: grab; }
+  .tarea.arrastrando { opacity: .4; }
+  .dia.destino { outline: 2px dashed var(--accent); outline-offset: -2px; background: #f3f8f5; }
+  .tarea .hora { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .tarea .nombre { font-weight: 600; font-size: 14px; }
+  .tarea .quien { font-size: 12px; font-weight: 600; color: var(--c); }
+  .tarea .frec, .tarea .notas { font-size: 12px; color: var(--muted); }
+  .tarea .notas { font-style: italic; }
+  .vacio { color: var(--muted); font-size: 13px; padding: 10px; text-align: center; }
+
+  /* Vista por persona */
+  .personas { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; }
+  .persona-hoja { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 16px; }
+  .persona-hoja h2 { margin: 0 0 8px; font-size: 18px; color: var(--c); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 5px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 12px; color: var(--muted); font-weight: 600; }
+  td.check { width: 22px; }
+  td.check span { display: inline-block; width: 14px; height: 14px; border: 1.5px solid var(--muted); border-radius: 3px; }
+  tr.cambio-dia td { border-top: 2px solid var(--line); }
+  tbody tr { cursor: pointer; }
+
+  /* Modales */
+  dialog {
+    border: none; border-radius: 14px; padding: 0; width: min(480px, 94vw);
+    box-shadow: 0 20px 60px rgba(0,0,0,.25);
+  }
+  dialog::backdrop { background: rgba(0,0,0,.35); }
+  dialog form { padding: 18px 20px; display: grid; gap: 12px; }
+  dialog h3 { margin: 0; }
+  label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+  input[type=text], input[type=password], input[type=time], input[type=number], select {
+    font: inherit; color: var(--ink); padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; background: #fff;
+  }
+  .fila { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .dias-check { display: flex; flex-wrap: wrap; gap: 6px; }
+  .dias-check label {
+    display: flex; gap: 4px; align-items: center; padding: 4px 8px; border: 1px solid var(--line);
+    border-radius: 999px; color: var(--ink); cursor: pointer;
+  }
+  .nota-form { font-size: 12px; color: var(--muted); margin: -4px 0 0; }
+  .pie-modal { display: flex; gap: 8px; justify-content: space-between; }
+  .pie-modal div { display: flex; gap: 8px; }
+  .persona-fila { display: flex; gap: 8px; align-items: center; }
+  .persona-fila input { flex: 1; }
+
+  .ayuda { font-size: 12px; color: var(--muted); padding: 0 20px 20px; max-width: 900px; }
+  .ayuda code { background: #ebe7de; padding: 0 4px; border-radius: 4px; }
+  .solo-impresion { display: none; }
+
+  @media (max-width: 900px) {
+    header.top { position: static; }
+    .semana { grid-template-columns: 1fr; }
+    .dia { min-height: 0; }
+  }
+
+  @media print {
+    @page { size: A4 landscape; margin: 10mm; }
+    body { background: #fff; font-size: 11px; }
+    header.top, .barra, .ayuda, .dia h2 button { display: none !important; }
+    .solo-impresion { display: inline; }
+    main { padding: 0; }
+    .hoja-semana { break-after: page; }
+    .hoja-semana:last-child { break-after: auto; }
+    .hoja-semana + .hoja-semana { margin-top: 0; }
+    .semana { grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .dia.sin-dia { display: none; }
+    .dia { min-height: 0; border-radius: 6px; break-inside: avoid; }
+    .dia.hoy h2 { background: none; }
+    .tarea { padding: 3px 5px; break-inside: avoid; }
+    .tarea .nombre { font-size: 11px; }
+    .tarea .hora, .tarea .quien, .tarea .notas, .tarea .frec { font-size: 10px; }
+    .personas { display: block; }
+    .persona-hoja { border: none; padding: 0; break-after: page; }
+    .hoja-semana:last-child .persona-hoja:last-child { break-after: auto; }
+    tr { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div>
+    <h1><input id="titulo" value="Tareas de la casa" aria-label="Título"></h1>
+    <div id="estado" class="estado"></div>
+  </div>
+  <div class="acciones">
+    <button class="primario" id="btnNueva">+ Nueva tarea</button>
+    <button id="btnPersonas">Personas</button>
+    <button id="btnVista">Ver por persona</button>
+    <button id="btnGitHub" title="Leer y guardar los datos en GitHub">GitHub</button>
+    <button id="btnAbrir" title="Abrir un archivo CSV">Abrir CSV</button>
+    <button id="btnGuardar" title="Guardar los cambios en el CSV">Guardar CSV</button>
+    <span class="grupo">
+      <button id="btnImprimir">Imprimir</button>
+      <select class="btn" id="selImprimir" title="Cuántas semanas imprimir">
+        <option value="1">esta semana</option>
+        <option value="2">2 semanas</option>
+        <option value="4">4 semanas</option>
+      </select>
+    </span>
+  </div>
+  <input type="file" id="inputArchivo" accept=".csv,text/csv" hidden>
+</header>
+
+<div class="barra">
+  <div class="nav-semana">
+    <button id="btnAnterior" title="Semana anterior">‹</button>
+    <div>
+      <div class="rango" id="rango"></div>
+      <div class="ciclo" id="ciclo"></div>
+    </div>
+    <button id="btnSiguiente" title="Semana siguiente">›</button>
+    <button id="btnHoy">Hoy</button>
+  </div>
+  <div class="filtros" id="filtros"></div>
+</div>
+
+<main id="contenido"></main>
+
+<div class="ayuda">
+  <p>Hacé clic en una tarea para editarla. Los cambios se guardan solos en este navegador, pero tocá
+  <b>Guardar CSV</b> para que queden en el archivo.</p>
+  <p>Columna <code>semanas</code> del CSV: <code>todas</code> = todas las semanas ·
+  <code>1/2</code> y <code>2/2</code> = semana por medio (alternadas) ·
+  <code>3/4</code> = la semana 3 de cada ciclo de 4 (una vez por mes) ·
+  <code>2026-10-05</code> = solo la semana que empieza ese lunes.
+  Arriba, debajo de las fechas, se indica en qué número de ciclo cae la semana que estás viendo.</p>
+</div>
+
+<dialog id="modal">
+  <form method="dialog" id="form">
+    <h3 id="modalTitulo">Nueva tarea</h3>
+    <label>Tarea
+      <input type="text" name="tarea" list="listaTareas" required placeholder="Ej: Lavar los platos">
+    </label>
+    <div class="fila">
+      <label>Quién
+        <input type="text" name="persona" list="listaPersonas" placeholder="A definir">
+      </label>
+      <label>Categoría
+        <select name="categoria"></select>
+      </label>
+    </div>
+    <div>
+      <label style="margin-bottom:4px">Días</label>
+      <div class="dias-check" id="diasCheck"></div>
+      <p class="nota-form" style="margin-top:6px">Si no marcás ningún día, va a la columna "Sin asignar".</p>
+    </div>
+    <div class="fila">
+      <label>Hora
+        <input type="time" name="hora" required value="09:00">
+      </label>
+      <label>Duración (min)
+        <input type="number" name="duracion" min="0" step="5" value="30">
+      </label>
+    </div>
+    <div class="fila">
+      <label>¿Cada cuánto?
+        <select name="frecuencia">
+          <option value="todas">Todas las semanas</option>
+          <option value="alternar">Se turnan (semana por medio)</option>
+          <option value="2">Cada 2 semanas</option>
+          <option value="3">Cada 3 semanas</option>
+          <option value="4">Cada 4 semanas (1 vez por mes)</option>
+          <option value="unica">Solo esta semana</option>
+        </select>
+      </label>
+      <label id="campoTurno">La semana siguiente la hace
+        <input type="text" name="turno" list="listaPersonas" placeholder="Nombre">
+      </label>
+    </div>
+    <p class="nota-form" id="notaFrecuencia"></p>
+    <label>Notas
+      <input type="text" name="notas" placeholder="Opcional">
+    </label>
+    <div class="pie-modal">
+      <button type="button" class="peligro" id="btnEliminar">Eliminar</button>
+      <div>
+        <button type="button" id="btnCancelar">Cancelar</button>
+        <button type="submit" class="primario">Guardar</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="modalPersonas">
+  <form method="dialog" id="formPersonas">
+    <h3>Personas</h3>
+    <p class="nota-form">Los nombres salen de la columna <code>persona</code> del CSV. Si cambiás un nombre acá, se cambia en todas sus tareas.
+    Para sumar a alguien nuevo, creá una tarea y escribí su nombre en "Quién".</p>
+    <div id="listaRenombrar" style="display:grid;gap:8px"></div>
+    <div class="pie-modal">
+      <span></span>
+      <div>
+        <button type="button" id="btnCancelarPersonas">Cancelar</button>
+        <button type="submit" class="primario">Guardar</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="modalGH">
+  <form method="dialog" id="formGH">
+    <h3>Conectar con GitHub</h3>
+    <p class="nota-form">Los datos se leen y se guardan en un CSV dentro de un repositorio (puede ser privado).
+    Esta configuración queda guardada solo en este dispositivo.</p>
+    <label>Repositorio (usuario/nombre)
+      <input type="text" name="repo" placeholder="usuario/casa-datos" required autocapitalize="off" spellcheck="false">
+    </label>
+    <div class="fila">
+      <label>Rama <input type="text" name="rama" value="main" required autocapitalize="off"></label>
+      <label>Archivo <input type="text" name="ruta" value="tareas.csv" required autocapitalize="off"></label>
+    </div>
+    <label>Token
+      <input type="password" name="token" required autocomplete="off" placeholder="github_pat_…">
+    </label>
+    <label>Tu nombre (aparece en el historial de cambios)
+      <input type="text" name="nombre" placeholder="Opcional">
+    </label>
+    <div class="pie-modal">
+      <button type="button" class="peligro" id="btnDesconectar">Desconectar</button>
+      <div>
+        <button type="button" id="btnCancelarGH">Cancelar</button>
+        <button type="submit" class="primario">Conectar</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="modalQuien">
+  <form method="dialog">
+    <h3>¿Quién hace "<span id="quienTarea"></span>"?</h3>
+    <div class="quien-opciones" id="quienOpciones"></div>
+    <div class="persona-fila">
+      <input type="text" id="quienOtra" placeholder="Otra persona" list="listaPersonas">
+      <button value="__otra">Asignar</button>
+    </div>
+    <div class="pie-modal"><span></span><button value="">Dejar "A definir"</button></div>
+  </form>
+</dialog>
+
+<datalist id="listaTareas"></datalist>
+<datalist id="listaPersonas"></datalist>
+
+<script>
+const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+const SIN_DIA = 'Sin asignar'; // tareas que todavía no tienen día
+const ordenDia = (d) => (d === SIN_DIA ? -1 : DIAS.indexOf(d));
+const CATEGORIAS = {
+  cocina: '🍳 Cocina',
+  compras: '🛒 Compras',
+  limpieza: '🧽 Limpieza',
+  ropa: '👕 Ropa',
+  mascotas: '🐾 Mascotas',
+  plantas: '🪴 Plantas',
+  otros: '📌 Otros',
+};
+const COLUMNAS = ['dia', 'hora', 'duracion_min', 'tarea', 'persona', 'semanas', 'categoria', 'notas'];
+const COLORES = [
+  { c: '#2f6f5e', bg: '#e3f0ea' },
+  { c: '#a4512e', bg: '#f7e6dc' },
+  { c: '#3d5a9e', bg: '#e2e8f6' },
+  { c: '#8a3f7d', bg: '#f2e1ef' },
+  { c: '#7a6a1f', bg: '#f1ecd4' },
+];
+const CLAVE_LOCAL = 'tareas-casa-v1';
+
+// Las semanas se numeran desde un lunes fijo; así "1/2", "3/4", etc. siempre caen en las mismas semanas.
+const EPOCA = Date.UTC(2024, 0, 1);
+const DIA_MS = 864e5;
+const SEMANA_MS = 7 * DIA_MS;
+
+let tareas = [];          // {id, dia, hora, duracion, tarea, persona, semanas, categoria, notas}
+let filtro = 'Todos';
+let vista = 'semana';
+let archivoHandle = null; // File System Access API (Chrome/Edge)
+let nombreArchivo = 'tareas.csv';
+let sinGuardar = false;
+let editandoIds = [];
+let proximoId = 1;
+
+const $ = (s) => document.querySelector(s);
+
+/* ---------- Semanas ---------- */
+function indiceDeFecha(fecha) {
+  const d = Date.UTC(fecha.getFullYear(), fecha.getMonth(), fecha.getDate());
+  const dow = (new Date(d).getUTCDay() + 6) % 7;
+  return Math.round((d - dow * DIA_MS - EPOCA) / SEMANA_MS);
+}
+const semanaActual = indiceDeFecha(new Date());
+let semanaVista = semanaActual;
+
+function lunesDe(i) { return EPOCA + i * SEMANA_MS; }
+function isoFecha(ms) { return new Date(ms).toISOString().slice(0, 10); }
+function fechaCorta(ms, conMes = true) {
+  return new Date(ms).toLocaleDateString('es-AR', conMes ? { day: 'numeric', month: 'short', timeZone: 'UTC' } : { day: 'numeric', timeZone: 'UTC' });
+}
+function rangoSemana(i) {
+  const ini = lunesDe(i), fin = ini + 6 * DIA_MS;
+  return `${fechaCorta(ini)} – ${fechaCorta(fin)}`;
+}
+function posicion(i, n) { return ((i % n) + n) % n + 1; }
+
+function parsearSemanas(s) {
+  s = String(s || '').trim().toLowerCase();
+  let m = s.match(/^(\d+)\s*\/\s*(\d+)$/);
+  if (m && +m[2] > 0) return { tipo: 'ciclo', pos: +m[1], n: +m[2] };
+  m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (m) return { tipo: 'unica', semana: indiceDeFecha(new Date(+m[1], +m[2] - 1, +m[3])) };
+  return { tipo: 'todas' };
+}
+function tocaEnSemana(t, i) {
+  const f = parsearSemanas(t.semanas);
+  if (f.tipo === 'ciclo') return posicion(i, f.n) === f.pos;
+  if (f.tipo === 'unica') return f.semana === i;
+  return true;
+}
+// Tarea "pareja" de un turno: misma tarea, día y hora, cada 2 semanas, en la otra semana.
+function companeraDeTurno(t) {
+  const f = parsearSemanas(t.semanas);
+  if (f.tipo !== 'ciclo' || f.n !== 2) return null;
+  return tareas.find((o) => {
+    if (o.id === t.id || o.tarea !== t.tarea || o.dia !== t.dia || o.hora !== t.hora) return false;
+    const g = parsearSemanas(o.semanas);
+    return g.tipo === 'ciclo' && g.n === 2 && g.pos !== f.pos;
+  }) || null;
+}
+function textoFrecuencia(t) {
+  const f = parsearSemanas(t.semanas);
+  if (f.tipo === 'unica') return 'solo esta semana';
+  if (f.tipo !== 'ciclo') return '';
+  const comp = companeraDeTurno(t);
+  if (comp) return comp.persona === t.persona ? 'cada 2 semanas' : `se turna con ${comp.persona}`;
+  return f.n === 4 ? '1 vez por mes' : `cada ${f.n} semanas`;
+}
+
+/* ---------- CSV ---------- */
+function parsearCSV(texto) {
+  texto = texto.replace(/^﻿/, '');
+  const primeraLinea = texto.split(/\r?\n/, 1)[0];
+  const sep = (primeraLinea.split(';').length > primeraLinea.split(',').length) ? ';' : ',';
+  const filas = [];
+  let fila = [], campo = '', comillas = false;
+  for (let i = 0; i < texto.length; i++) {
+    const ch = texto[i];
+    if (comillas) {
+      if (ch === '"' && texto[i + 1] === '"') { campo += '"'; i++; }
+      else if (ch === '"') comillas = false;
+      else campo += ch;
+    } else if (ch === '"') comillas = true;
+    else if (ch === sep) { fila.push(campo); campo = ''; }
+    else if (ch === '\n' || ch === '\r') {
+      if (ch === '\r' && texto[i + 1] === '\n') i++;
+      fila.push(campo); filas.push(fila); fila = []; campo = '';
+    } else campo += ch;
+  }
+  if (campo !== '' || fila.length) { fila.push(campo); filas.push(fila); }
+
+  const encabezado = filas.shift().map((h) => sinAcentos(h.trim().toLowerCase()));
+  if (!encabezado.includes('dia') || !encabezado.includes('tarea')) throw new Error('formato');
+  const idx = (nombre) => encabezado.indexOf(nombre);
+  return filas
+    .filter((f) => f.some((v) => v.trim() !== ''))
+    .map((f) => {
+      const get = (n) => (idx(n) >= 0 ? (f[idx(n)] || '').trim() : '');
+      return nuevaTarea({
+        dia: normalizarDia(get('dia')),
+        hora: normalizarHora(get('hora')),
+        duracion: parseInt(get('duracion_min') || get('duracion'), 10) || 0,
+        tarea: get('tarea'),
+        persona: get('persona') || 'A definir',
+        semanas: get('semanas') || 'todas',
+        categoria: (get('categoria') || 'otros').toLowerCase(),
+        notas: get('notas'),
+      });
+    })
+    .filter((t) => t.dia && t.tarea);
+}
+
+function generarCSV() {
+  const esc = (v) => {
+    v = String(v ?? '');
+    return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+  };
+  const filas = ordenar(tareas).map((t) =>
+    [t.dia, t.hora, t.duracion, t.tarea, t.persona, t.semanas, t.categoria, t.notas].map(esc).join(','));
+  return [COLUMNAS.join(','), ...filas].join('\n') + '\n';
+}
+
+function sinAcentos(s) { return s.normalize('NFD').replace(/[̀-ͯ]/g, ''); }
+function normalizarDia(d) {
+  const x = sinAcentos(d.toLowerCase());
+  if (!x || x === 'sin asignar' || x === 'a definir') return SIN_DIA;
+  return DIAS.find((dia) => sinAcentos(dia.toLowerCase()) === x) || SIN_DIA;
+}
+function normalizarHora(h) {
+  const m = h.match(/^(\d{1,2})(?::|\.|h)?(\d{2})?/);
+  if (!m) return '00:00';
+  return m[1].padStart(2, '0') + ':' + (m[2] || '00');
+}
+function nuevaTarea(t) { return { id: proximoId++, ...t }; }
+function ordenar(lista) {
+  return [...lista].sort((a, b) =>
+    ordenDia(a.dia) - ordenDia(b.dia) || a.hora.localeCompare(b.hora) ||
+    a.tarea.localeCompare(b.tarea) || String(a.semanas).localeCompare(String(b.semanas)));
+}
+
+/* ---------- Persistencia ---------- */
+function guardarLocal() {
+  try {
+    localStorage.setItem(CLAVE_LOCAL, JSON.stringify({
+      tareas, titulo: $('#titulo').value, sinGuardar, nombreArchivo, ghSha,
+    }));
+  } catch (e) { /* sin almacenamiento disponible */ }
+}
+
+// Guarda el "permiso" al archivo (Chrome/Edge) para no tener que elegirlo cada vez.
+function idb(modo, valor) {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('tareas-casa', 1);
+    req.onupgradeneeded = () => req.result.createObjectStore('kv');
+    req.onerror = () => reject(req.error);
+    req.onsuccess = () => {
+      const st = req.result.transaction('kv', modo === 'get' ? 'readonly' : 'readwrite').objectStore('kv');
+      const op = modo === 'get' ? st.get('archivo') : st.put(valor, 'archivo');
+      op.onsuccess = () => resolve(op.result);
+      op.onerror = () => reject(op.error);
+    };
+  });
+}
+
+/* ---------- GitHub ---------- */
+const CLAVE_GH = 'tareas-casa-github';
+let gh = null;          // {repo, rama, ruta, token, nombre}
+let ghSha = null;       // versión del archivo en GitHub sobre la que se está trabajando
+let ghEstado = '';
+try { gh = JSON.parse(localStorage.getItem(CLAVE_GH)); } catch (e) {}
+const ghActivo = () => !!(gh && gh.repo && gh.token);
+
+function ghPedir(metodo, cuerpo) {
+  const ruta = gh.ruta.split('/').map(encodeURIComponent).join('/');
+  const url = `https://api.github.com/repos/${gh.repo}/contents/${ruta}` +
+    (metodo === 'GET' ? `?ref=${encodeURIComponent(gh.rama)}` : '');
+  return fetch(url, {
+    method: metodo,
+    cache: 'no-store',
+    headers: {
+      Authorization: `Bearer ${gh.token}`,
+      Accept: 'application/vnd.github+json',
+      ...(cuerpo ? { 'Content-Type': 'application/json' } : {}),
+    },
+    body: cuerpo ? JSON.stringify(cuerpo) : undefined,
+  });
+}
+function aBase64(texto) {
+  let bin = '';
+  new TextEncoder().encode(texto).forEach((b) => { bin += String.fromCharCode(b); });
+  return btoa(bin);
+}
+function deBase64(b64) {
+  return new TextDecoder().decode(Uint8Array.from(atob(b64.replace(/\s/g, '')), (c) => c.charCodeAt(0)));
+}
+async function errorGH(r) {
+  if (r.status === 401) return 'El token no es válido o venció.';
+  if (r.status === 403) return 'El token no tiene permiso para escribir en el repositorio (revisá "Contents: Read and write").';
+  if (r.status === 404) return `No se encontró el repositorio "${gh.repo}" o el token no tiene acceso a él.`;
+  try { return (await r.json()).message; } catch (e) { return 'Error ' + r.status; }
+}
+function horaAhora() {
+  return new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
+}
+
+// Devuelve 'ok', 'no-existe' (el CSV todavía no está en el repo) o 'cancelado'.
+async function ghLeer(preguntar) {
+  const r = await ghPedir('GET');
+  if (r.status === 404) {
+    const repo = await fetch(`https://api.github.com/repos/${gh.repo}`, { headers: { Authorization: `Bearer ${gh.token}` } });
+    if (repo.ok) { ghSha = null; return 'no-existe'; }
+  }
+  if (!r.ok) throw new Error(await errorGH(r));
+  const j = await r.json();
+  if (!cargarTexto(deBase64(j.content), gh.ruta, preguntar)) return 'cancelado';
+  ghSha = j.sha;
+  ghEstado = `GitHub: ${gh.repo} · actualizado ${horaAhora()}`;
+  guardarLocal();
+  render();
+  return 'ok';
+}
+
+async function ghGuardar() {
+  const cuerpo = {
+    message: 'Actualizar tareas' + (gh.nombre ? ` (${gh.nombre})` : ''),
+    content: aBase64(generarCSV()),
+    branch: gh.rama,
+    ...(ghSha ? { sha: ghSha } : {}),
+  };
+  let r = await ghPedir('PUT', cuerpo);
+  if (r.status === 409 || r.status === 422) {
+    // Alguien guardó otra versión desde que se cargó la página.
+    if (!confirm('Alguien guardó cambios en GitHub después de que cargaste las tareas.\n\n' +
+                 'Aceptar: guardar TU versión (reemplaza la otra).\nCancelar: ver otras opciones.')) {
+      if (confirm('¿Descartar tus cambios y cargar la versión que está en GitHub?')) {
+        sinGuardar = false;
+        await ghLeer(false);
+      }
+      return;
+    }
+    const actual = await ghPedir('GET');
+    if (actual.ok) cuerpo.sha = (await actual.json()).sha;
+    r = await ghPedir('PUT', cuerpo);
+  }
+  if (!r.ok) throw new Error(await errorGH(r));
+  ghSha = (await r.json()).content.sha;
+  ghEstado = `GitHub: ${gh.repo} · guardado ${horaAhora()}`;
+  sinGuardar = false;
+  guardarLocal();
+  render();
+}
+
+function abrirModalGH() {
+  const f = $('#formGH');
+  const c = gh || {};
+  f.repo.value = c.repo || '';
+  f.rama.value = c.rama || 'main';
+  f.ruta.value = c.ruta || 'tareas.csv';
+  f.token.value = c.token || '';
+  f.nombre.value = c.nombre || '';
+  $('#btnDesconectar').style.visibility = ghActivo() ? 'visible' : 'hidden';
+  $('#modalGH').showModal();
+}
+
+async function conectarGH(config) {
+  gh = config;
+  try { localStorage.setItem(CLAVE_GH, JSON.stringify(gh)); } catch (e) {}
+  nombreArchivo = gh.ruta;
+  ghSha = null;
+  try {
+    const res = await ghLeer(true);
+    if (res === 'no-existe') {
+      if (confirm(`El archivo "${gh.ruta}" todavía no existe en ${gh.repo}. ¿Subir las tareas que ves ahora?`)) {
+        await ghGuardar();
+      }
+    } else if (res === 'cancelado') {
+      sinGuardar = true; // se quedan los cambios locales; al guardar se avisa del conflicto
+      guardarLocal();
+    }
+  } catch (e) {
+    alert('No se pudo conectar con GitHub: ' + e.message);
+  }
+  render();
+}
+
+function marcarCambio() {
+  sinGuardar = true;
+  guardarLocal();
+  render();
+}
+
+async function abrirCSV() {
+  if (window.showOpenFilePicker) {
+    try {
+      const [h] = await showOpenFilePicker({
+        types: [{ description: 'CSV', accept: { 'text/csv': ['.csv'] } }],
+      });
+      await leerDesdeHandle(h, true);
+    } catch (e) { if (e.name !== 'AbortError') alert('No se pudo abrir: ' + e.message); }
+  } else {
+    $('#inputArchivo').click();
+  }
+}
+
+function importadoAGitHub() {
+  // Con GitHub conectado, abrir un CSV local es importarlo: queda pendiente de guardar.
+  if (!ghActivo()) return false;
+  nombreArchivo = gh.ruta;
+  marcarCambio();
+  return true;
+}
+
+async function leerDesdeHandle(h, preguntar) {
+  const archivo = await h.getFile();
+  if (cargarTexto(await archivo.text(), archivo.name, preguntar)) {
+    if (preguntar && importadoAGitHub()) return;
+    archivoHandle = h;
+    try { await idb('put', h); } catch (e) {}
+    render();
+  }
+}
+
+async function reconectar() {
+  try {
+    if (await archivoHandle.requestPermission({ mode: 'readwrite' }) === 'granted') {
+      await leerDesdeHandle(archivoHandle, true);
+    }
+  } catch (e) { alert('No se pudo abrir el archivo: ' + e.message); }
+}
+
+function cargarTexto(texto, nombre, preguntar) {
+  if (preguntar && sinGuardar && tareas.length &&
+      !confirm('Tenés cambios sin guardar en el CSV. ¿Abrir el archivo igual y descartarlos?')) return false;
+  try {
+    proximoId = 1;
+    tareas = parsearCSV(texto);
+    nombreArchivo = nombre;
+    sinGuardar = false;
+    guardarLocal();
+    render();
+    return true;
+  } catch (e) {
+    alert('El archivo no tiene el formato esperado.\nColumnas: ' + COLUMNAS.join(', '));
+    return false;
+  }
+}
+
+async function guardarCSV() {
+  if (ghActivo()) {
+    try { await ghGuardar(); } catch (e) {
+      alert(navigator.onLine === false || e instanceof TypeError
+        ? 'Sin conexión. Los cambios quedan guardados en este dispositivo; guardá de nuevo cuando vuelva internet.'
+        : 'No se pudo guardar en GitHub: ' + e.message);
+    }
+    return;
+  }
+  const contenido = generarCSV();
+  if (window.showSaveFilePicker) {
+    try {
+      if (!archivoHandle) {
+        archivoHandle = await showSaveFilePicker({
+          suggestedName: nombreArchivo,
+          types: [{ description: 'CSV', accept: { 'text/csv': ['.csv'] } }],
+        });
+        try { await idb('put', archivoHandle); } catch (e) {}
+      }
+      if (await archivoHandle.requestPermission({ mode: 'readwrite' }) !== 'granted') return;
+      const w = await archivoHandle.createWritable();
+      await w.write(contenido);
+      await w.close();
+      nombreArchivo = archivoHandle.name;
+    } catch (e) {
+      if (e.name === 'AbortError') return;
+      alert('No se pudo guardar: ' + e.message);
+      return;
+    }
+  } else {
+    // Firefox/Safari: se descarga el archivo; reemplazá el tareas.csv viejo por el nuevo.
+    const blob = new Blob([contenido], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = nombreArchivo;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+  sinGuardar = false;
+  guardarLocal();
+  render();
+}
+
+async function iniciar() {
+  let guardado = null;
+  try { guardado = JSON.parse(localStorage.getItem(CLAVE_LOCAL)); } catch (e) {}
+  if (guardado && Array.isArray(guardado.tareas)) {
+    tareas = guardado.tareas.map((t) => ({ semanas: 'todas', ...t }));
+    proximoId = Math.max(0, ...tareas.map((t) => t.id)) + 1;
+    sinGuardar = !!guardado.sinGuardar;
+    nombreArchivo = guardado.nombreArchivo || nombreArchivo;
+    if (guardado.titulo) $('#titulo').value = guardado.titulo;
+    ghSha = guardado.ghSha || null;
+  }
+  render();
+
+  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+
+  if (ghActivo()) {
+    nombreArchivo = gh.ruta;
+    if (sinGuardar) { render(); return; } // no pisar cambios hechos sin conexión
+    try {
+      if (await ghLeer(false) === 'no-existe') ghEstado = `"${gh.ruta}" no existe todavía en ${gh.repo}: tocá Guardar para crearlo`;
+    } catch (e) {
+      ghEstado = e instanceof TypeError ? 'Sin conexión: mostrando la copia guardada en este dispositivo' : 'Error de GitHub: ' + e.message;
+    }
+    render();
+    return;
+  }
+
+  // Chrome/Edge: si ya se abrió el CSV antes, se vuelve a leer para tomar cambios hechos a mano.
+  try {
+    if (window.showOpenFilePicker) {
+      const h = await Promise.race([idb('get'), new Promise((r) => setTimeout(r, 1500))]);
+      if (h) {
+        archivoHandle = h;
+        if (!sinGuardar && await h.queryPermission({ mode: 'readwrite' }) === 'granted') {
+          await leerDesdeHandle(h, false);
+        }
+        render();
+        return;
+      }
+    }
+  } catch (e) {}
+
+  if (!guardado) {
+    // Funciona si la página se sirve desde un servidor local; con file:// el navegador lo bloquea.
+    try {
+      const r = await fetch('tareas.csv', { cache: 'no-store' });
+      if (r.ok) { tareas = parsearCSV(await r.text()); render(); }
+    } catch (e) {}
+  }
+}
+
+/* ---------- Render ---------- */
+function personas() {
+  return [...new Set(tareas.map((t) => t.persona))].sort((a, b) => a.localeCompare(b));
+}
+const SIN_ASIGNAR = ['a definir', 'sin asignar'];
+const GRIS = { c: '#7d776c', bg: '#efede8' };
+function colorDe(persona) {
+  if (SIN_ASIGNAR.includes(String(persona).toLowerCase())) return GRIS;
+  const i = personas().filter((p) => !SIN_ASIGNAR.includes(p.toLowerCase())).indexOf(persona);
+  return COLORES[(i < 0 ? 0 : i) % COLORES.length];
+}
+function emoji(cat) { return (CATEGORIAS[cat] || CATEGORIAS.otros).split(' ')[0]; }
+function horaFin(t) {
+  if (!t.duracion) return '';
+  const [h, m] = t.hora.split(':').map(Number);
+  const total = h * 60 + m + Number(t.duracion);
+  return String(Math.floor(total / 60) % 24).padStart(2, '0') + ':' + String(total % 60).padStart(2, '0');
+}
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function formatoHoras(min) {
+  const h = Math.floor(min / 60), m = min % 60;
+  return h ? (m ? `${h} h ${m} min` : `${h} h`) : `${m} min`;
+}
+function tareasDeSemana(i) {
+  return ordenar(tareas.filter((t) => tocaEnSemana(t, i) && (filtro === 'Todos' || t.persona === filtro)));
+}
+
+function render(semanasAImprimir = 1) {
+  const ps = personas();
+  if (filtro !== 'Todos' && !ps.includes(filtro)) filtro = 'Todos';
+
+  // Estado del archivo
+  const est = $('#estado');
+  if (ghActivo()) {
+    est.textContent = sinGuardar ? `● Cambios sin guardar en GitHub (${gh.repo})` : (ghEstado || `GitHub: ${gh.repo}`);
+  } else if (archivoHandle && !tareas.length) {
+    est.innerHTML = `Archivo: ${esc(nombreArchivo)} <button id="btnReconectar">Volver a abrir</button>`;
+  } else if (sinGuardar) {
+    est.textContent = `● Cambios sin guardar en ${nombreArchivo}`;
+  } else {
+    est.textContent = tareas.length ? `Archivo: ${nombreArchivo}` : 'Sin datos: tocá "GitHub" para conectar, o "Abrir CSV" para cargar un archivo';
+  }
+  est.classList.toggle('sucio', sinGuardar);
+
+  // Navegación de semanas
+  $('#rango').textContent = rangoSemana(semanaVista);
+  const ciclos = [...new Set(tareas.map((t) => parsearSemanas(t.semanas)).filter((f) => f.tipo === 'ciclo').map((f) => f.n))].sort();
+  const deCiclo = ciclos.map((n) => `${posicion(semanaVista, n)}/${n}`).join(' · ');
+  const relativa = semanaVista === semanaActual ? 'Esta semana'
+    : semanaVista === semanaActual + 1 ? 'Semana que viene'
+    : semanaVista === semanaActual - 1 ? 'Semana pasada' : '';
+  $('#ciclo').textContent = [relativa, deCiclo && `semana ${deCiclo}`].filter(Boolean).join(' · ');
+  $('#btnHoy').disabled = semanaVista === semanaActual;
+
+  // Filtros
+  $('#filtros').innerHTML = ['Todos', ...ps].map((p) => {
+    const punto = p === 'Todos' ? '' : `<span class="punto" style="background:${colorDe(p).c}"></span>`;
+    return `<button class="chip ${p === filtro ? 'activo' : ''}" data-filtro="${esc(p)}">${punto}${esc(p)}</button>`;
+  }).join('');
+
+  $('#btnVista').textContent = vista === 'semana' ? 'Ver por persona' : 'Ver semana';
+
+  let html = '';
+  for (let k = 0; k < semanasAImprimir; k++) html += renderHoja(semanaVista + k);
+  $('#contenido').innerHTML = html;
+
+  // Sugerencias del formulario
+  $('#listaTareas').innerHTML = [...new Set(tareas.map((t) => t.tarea))].sort()
+    .map((t) => `<option value="${esc(t)}">`).join('');
+  $('#listaPersonas').innerHTML = ps.map((p) => `<option value="${esc(p)}">`).join('');
+}
+
+function renderHoja(i) {
+  const lista = tareasDeSemana(i);
+  const ps = [...new Set(tareas.filter((t) => tocaEnSemana(t, i)).map((t) => t.persona))].sort((a, b) => a.localeCompare(b));
+  const resumen = ps.map((p) => {
+    const suyas = tareas.filter((t) => t.persona === p && t.dia !== SIN_DIA && tocaEnSemana(t, i));
+    if (!suyas.length) return '';
+    const min = suyas.reduce((s, t) => s + Number(t.duracion || 0), 0);
+    return `<span><b style="color:${colorDe(p).c}">${esc(p)}</b>: ${suyas.length} tareas · ${formatoHoras(min)}</span>`;
+  }).join('');
+  const titulo = `${esc($('#titulo').value)} — semana del ${rangoSemana(i)}${filtro === 'Todos' ? '' : ' — ' + esc(filtro)}`;
+  return `<section class="hoja-semana">
+    <div class="cabecera-semana"><strong class="solo-impresion">${titulo}</strong><div class="resumen">${resumen}</div></div>
+    ${vista === 'semana' ? renderSemana(lista, i) : renderPersonas(lista)}
+  </section>`;
+}
+
+function tarjeta(t) {
+  const col = colorDe(t.persona);
+  const fin = horaFin(t);
+  const frec = textoFrecuencia(t);
+  return `<div class="tarea" draggable="true" data-id="${t.id}" style="--c:${col.c};--cbg:${col.bg}">
+    <div class="hora">${t.hora}${fin ? '–' + fin : ''}</div>
+    <div class="nombre">${emoji(t.categoria)} ${esc(t.tarea)}</div>
+    <div class="quien">${esc(t.persona)}</div>
+    ${frec ? `<div class="frec">↻ ${esc(frec)}</div>` : ''}
+    ${t.notas ? `<div class="notas">${esc(t.notas)}</div>` : ''}
+  </div>`;
+}
+
+function renderSemana(lista, i) {
+  const hoy = i === semanaActual ? DIAS[(new Date().getDay() + 6) % 7] : null;
+  const sinDia = lista.filter((t) => t.dia === SIN_DIA);
+  const columnaSinDia = `<section class="dia sin-dia" data-dia="${SIN_DIA}">
+      <h2><span>Sin asignar <small>${sinDia.length || ''}</small></span><button title="Agregar tarea sin día" data-nuevo-dia="${SIN_DIA}">+</button></h2>
+      <div class="lista">${sinDia.length ? sinDia.map(tarjeta).join('') : '<div class="vacio">Arrastrá acá lo que todavía no tiene día</div>'}</div>
+    </section>`;
+  return '<div class="semana">' + columnaSinDia + DIAS.map((dia, d) => {
+    const delDia = lista.filter((t) => t.dia === dia);
+    const fecha = fechaCorta(lunesDe(i) + d * DIA_MS, false);
+    return `<section class="dia ${dia === hoy ? 'hoy' : ''}" data-dia="${dia}">
+      <h2><span>${dia} <small>${fecha}</small></span><button title="Agregar tarea el ${dia}" data-nuevo-dia="${dia}">+</button></h2>
+      <div class="lista">${delDia.length ? delDia.map(tarjeta).join('') : '<div class="vacio">—</div>'}</div>
+    </section>`;
+  }).join('') + '</div>';
+}
+
+function renderPersonas(lista) {
+  const ps = [...new Set(lista.map((t) => t.persona))].sort((a, b) => a.localeCompare(b));
+  if (!ps.length) return '<div class="vacio">No hay tareas esta semana.</div>';
+  return '<div class="personas">' + ps.map((p) => {
+    let diaAnterior = '';
+    const filas = lista.filter((t) => t.persona === p).map((t) => {
+      const nuevoDia = t.dia !== diaAnterior;
+      diaAnterior = t.dia;
+      const fin = horaFin(t);
+      const frec = textoFrecuencia(t);
+      const extra = [frec && '↻ ' + frec, t.notas].filter(Boolean).join(' · ');
+      return `<tr data-id="${t.id}" class="${nuevoDia ? 'cambio-dia' : ''}">
+        <td class="check"><span></span></td>
+        <td>${nuevoDia ? `<b>${t.dia}</b>` : ''}</td>
+        <td>${t.hora}${fin ? '–' + fin : ''}</td>
+        <td>${emoji(t.categoria)} ${esc(t.tarea)}${extra ? ` <i style="color:var(--muted)">(${esc(extra)})</i>` : ''}</td>
+      </tr>`;
+    }).join('');
+    return `<div class="persona-hoja" style="--c:${colorDe(p).c}">
+      <h2>${esc(p)}</h2>
+      <table><thead><tr><th></th><th>Día</th><th>Horario</th><th>Tarea</th></tr></thead><tbody>${filas}</tbody></table>
+    </div>`;
+  }).join('') + '</div>';
+}
+
+/* ---------- Formulario de tarea ---------- */
+const form = $('#form');
+form.categoria.innerHTML = Object.entries(CATEGORIAS)
+  .map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
+$('#diasCheck').innerHTML = DIAS
+  .map((d) => `<label><input type="checkbox" name="dias" value="${d}">${d.slice(0, 3)}</label>`).join('');
+
+function actualizarFrecuencia() {
+  const v = form.frecuencia.value;
+  $('#campoTurno').style.visibility = v === 'alternar' ? 'visible' : 'hidden';
+  form.turno.required = v === 'alternar';
+  const rango = rangoSemana(semanaVista);
+  $('#notaFrecuencia').textContent =
+    v === 'alternar' ? `Esta semana (${rango}) le toca a "${form.persona.value || '…'}"; la siguiente a "${form.turno.value || '…'}", y así.` :
+    v === 'unica' ? `Solo aparece en la semana del ${rango}.` :
+    v === 'todas' ? '' :
+    `Aparece la semana del ${rango} y después cada ${v} semanas.`;
+}
+form.frecuencia.addEventListener('change', actualizarFrecuencia);
+form.persona.addEventListener('input', actualizarFrecuencia);
+form.turno.addEventListener('input', actualizarFrecuencia);
+
+function abrirModal(tarea, diaInicial) {
+  form.reset();
+  const comp = tarea ? companeraDeTurno(tarea) : null;
+  editandoIds = tarea ? [tarea.id, ...(comp ? [comp.id] : [])] : [];
+  $('#modalTitulo').textContent = tarea ? 'Editar tarea' : 'Nueva tarea';
+  $('#btnEliminar').style.visibility = tarea ? 'visible' : 'hidden';
+  $('#btnEliminar').textContent = comp ? 'Eliminar (ambas semanas)' : 'Eliminar';
+
+  const t = tarea || {
+    tarea: '', persona: filtro !== 'Todos' ? filtro : '', categoria: 'otros',
+    hora: '09:00', duracion: 30, notas: '', semanas: 'todas',
+  };
+  form.tarea.value = t.tarea;
+  form.persona.value = t.persona;
+  form.categoria.value = CATEGORIAS[t.categoria] ? t.categoria : 'otros';
+  form.hora.value = t.hora;
+  form.duracion.value = t.duracion;
+  form.notas.value = t.notas;
+
+  const f = parsearSemanas(t.semanas);
+  if (comp) { form.frecuencia.value = 'alternar'; form.turno.value = comp.persona; }
+  else if (f.tipo === 'unica') form.frecuencia.value = 'unica';
+  else if (f.tipo === 'ciclo' && [2, 3, 4].includes(f.n)) form.frecuencia.value = String(f.n);
+  else form.frecuencia.value = 'todas';
+  actualizarFrecuencia();
+
+  const marcados = tarea ? [tarea.dia] : (diaInicial ? [diaInicial] : []);
+  form.querySelectorAll('[name=dias]').forEach((c) => { c.checked = marcados.includes(c.value); });
+  $('#modal').showModal();
+  form.tarea.focus();
+}
+
+form.addEventListener('submit', (e) => {
+  let dias = [...form.querySelectorAll('[name=dias]:checked')].map((c) => c.value);
+  if (!dias.length) dias = [SIN_DIA];
+  const base = {
+    tarea: form.tarea.value.trim(),
+    hora: form.hora.value,
+    duracion: parseInt(form.duracion.value, 10) || 0,
+    categoria: form.categoria.value,
+    notas: form.notas.value.trim(),
+  };
+  const persona = form.persona.value.trim() || 'A definir';
+  const v = form.frecuencia.value;
+
+  // Las frecuencias se calculan respecto de la semana que se está viendo.
+  let variantes;
+  if (v === 'alternar') {
+    const p = posicion(semanaVista, 2);
+    variantes = [
+      { persona, semanas: `${p}/2` },
+      { persona: form.turno.value.trim(), semanas: `${3 - p}/2` },
+    ];
+  } else if (v === 'unica') {
+    variantes = [{ persona, semanas: isoFecha(lunesDe(semanaVista)) }];
+  } else if (v === 'todas') {
+    variantes = [{ persona, semanas: 'todas' }];
+  } else {
+    variantes = [{ persona, semanas: `${posicion(semanaVista, +v)}/${v}` }];
+  }
+
+  tareas = tareas.filter((t) => !editandoIds.includes(t.id));
+  dias.forEach((dia) => variantes.forEach((x) => tareas.push(nuevaTarea({ dia, ...base, ...x }))));
+  marcarCambio();
+});
+
+$('#btnEliminar').addEventListener('click', () => {
+  if (!confirm(editandoIds.length > 1 ? '¿Eliminar esta tarea en las dos semanas del turno?' : '¿Eliminar esta tarea?')) return;
+  tareas = tareas.filter((t) => !editandoIds.includes(t.id));
+  $('#modal').close();
+  marcarCambio();
+});
+$('#btnCancelar').addEventListener('click', () => $('#modal').close());
+
+/* ---------- Personas ---------- */
+$('#btnPersonas').addEventListener('click', () => {
+  const ps = personas();
+  $('#listaRenombrar').innerHTML = ps.length ? ps.map((p, i) => `
+    <div class="persona-fila">
+      <span class="punto" style="background:${colorDe(p).c}"></span>
+      <input type="text" data-original="${esc(p)}" value="${esc(p)}" required>
+      <small style="color:var(--muted)">${tareas.filter((t) => t.persona === p).length} tareas</small>
+    </div>`).join('') : '<p class="nota-form">Todavía no hay personas cargadas.</p>';
+  $('#modalPersonas').showModal();
+});
+$('#formPersonas').addEventListener('submit', () => {
+  let cambio = false;
+  $('#listaRenombrar').querySelectorAll('input').forEach((inp) => {
+    const nuevo = inp.value.trim();
+    if (nuevo && nuevo !== inp.dataset.original) {
+      tareas.forEach((t) => { if (t.persona === inp.dataset.original) t.persona = nuevo; });
+      if (filtro === inp.dataset.original) filtro = nuevo;
+      cambio = true;
+    }
+  });
+  if (cambio) marcarCambio();
+});
+$('#btnCancelarPersonas').addEventListener('click', () => $('#modalPersonas').close());
+
+/* ---------- Arrastrar tareas entre días ---------- */
+let arrastrandoId = null;
+document.addEventListener('dragstart', (e) => {
+  const card = e.target.closest('.tarea[data-id]');
+  if (!card) return;
+  arrastrandoId = Number(card.dataset.id);
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', card.dataset.id);
+  card.classList.add('arrastrando');
+});
+document.addEventListener('dragend', () => {
+  arrastrandoId = null;
+  document.querySelectorAll('.arrastrando, .destino').forEach((el) => el.classList.remove('arrastrando', 'destino'));
+});
+document.addEventListener('dragover', (e) => {
+  const col = arrastrandoId !== null && e.target.closest('.dia[data-dia]');
+  if (!col) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  document.querySelectorAll('.destino').forEach((el) => { if (el !== col) el.classList.remove('destino'); });
+  col.classList.add('destino');
+});
+document.addEventListener('drop', (e) => {
+  const col = e.target.closest('.dia[data-dia]');
+  const t = tareas.find((x) => x.id === arrastrandoId);
+  if (!col || !t) return;
+  e.preventDefault();
+  const dia = col.dataset.dia;
+  if (t.dia === dia) return;
+  // Si es un turno, se mueven las dos semanas juntas.
+  const comp = companeraDeTurno(t);
+  t.dia = dia;
+  if (comp) comp.dia = dia;
+  marcarCambio();
+  if (dia !== SIN_DIA && sinDueno(t.persona)) preguntarQuien(t);
+});
+
+function sinDueno(p) { return !p || SIN_ASIGNAR.includes(p.toLowerCase()); }
+function preguntarQuien(t) {
+  const conDueno = personas().filter((p) => !sinDueno(p));
+  $('#quienOtra').value = '';
+  $('#quienTarea').textContent = t.tarea;
+  $('#quienOpciones').innerHTML = conDueno
+    .map((p) => `<button value="${esc(p)}" style="--c:${colorDe(p).c}">${esc(p)}</button>`).join('');
+  const modal = $('#modalQuien');
+  modal.returnValue = '';
+  modal.onclose = () => {
+    const quien = modal.returnValue === '__otra' ? $('#quienOtra').value.trim() : modal.returnValue;
+    if (quien) { t.persona = quien; marcarCambio(); }
+  };
+  modal.showModal();
+}
+
+/* ---------- Eventos ---------- */
+document.addEventListener('click', (e) => {
+  if (e.target.closest('#btnReconectar')) { reconectar(); return; }
+  const chip = e.target.closest('[data-filtro]');
+  if (chip) { filtro = chip.dataset.filtro; render(); return; }
+  const nuevoDia = e.target.closest('[data-nuevo-dia]');
+  if (nuevoDia) { abrirModal(null, nuevoDia.dataset.nuevoDia); return; }
+  const item = e.target.closest('main [data-id]');
+  if (item) abrirModal(tareas.find((t) => t.id === Number(item.dataset.id)));
+});
+
+$('#btnNueva').addEventListener('click', () => abrirModal(null));
+$('#btnGitHub').addEventListener('click', abrirModalGH);
+$('#btnCancelarGH').addEventListener('click', () => $('#modalGH').close());
+$('#formGH').addEventListener('submit', () => {
+  const f = $('#formGH');
+  conectarGH({
+    repo: f.repo.value.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\.git$|\/$/g, ''),
+    rama: f.rama.value.trim() || 'main',
+    ruta: f.ruta.value.trim() || 'tareas.csv',
+    token: f.token.value.trim(),
+    nombre: f.nombre.value.trim(),
+  });
+});
+$('#btnDesconectar').addEventListener('click', () => {
+  if (!confirm('¿Desconectar GitHub en este dispositivo? Las tareas quedan en la copia local.')) return;
+  gh = null; ghSha = null; ghEstado = '';
+  try { localStorage.removeItem(CLAVE_GH); } catch (e) {}
+  $('#modalGH').close();
+  guardarLocal();
+  render();
+});
+// Al volver a la pestaña, traer lo que haya guardado la otra persona.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible' || !ghActivo() || sinGuardar) return;
+  if (document.querySelector('dialog[open]')) return;
+  ghLeer(false).catch(() => {});
+});
+$('#btnAbrir').addEventListener('click', abrirCSV);
+$('#btnGuardar').addEventListener('click', guardarCSV);
+$('#btnAnterior').addEventListener('click', () => { semanaVista--; render(); });
+$('#btnSiguiente').addEventListener('click', () => { semanaVista++; render(); });
+$('#btnHoy').addEventListener('click', () => { semanaVista = semanaActual; render(); });
+$('#btnVista').addEventListener('click', () => { vista = vista === 'semana' ? 'personas' : 'semana'; render(); });
+$('#btnImprimir').addEventListener('click', () => {
+  render(Number($('#selImprimir').value));
+  window.print();
+});
+window.addEventListener('afterprint', () => render());
+$('#titulo').addEventListener('input', guardarLocal);
+$('#inputArchivo').addEventListener('change', async (e) => {
+  const f = e.target.files[0];
+  if (f && cargarTexto(await f.text(), f.name, true)) importadoAGitHub();
+  e.target.value = '';
+});
+window.addEventListener('beforeunload', (e) => { if (sinGuardar) e.preventDefault(); });
+
+iniciar();
+</script>
+</body>
+</html>
